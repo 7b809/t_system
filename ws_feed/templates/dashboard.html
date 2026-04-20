@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Live Market Dashboard</title>
+
+<style>
+body {
+  font-family: Arial;
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 20px;
+}
+
+h2 {
+  color: #38bdf8;
+}
+
+.container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 15px;
+}
+
+.card {
+  background: #020617;
+  border: 1px solid #1e293b;
+  border-radius: 10px;
+  padding: 15px;
+}
+
+.title {
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+
+.status {
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.live { color: #22c55e; }
+.offline { color: #ef4444; }
+.error { color: #f97316; }
+
+.value {
+  font-size: 22px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  margin-bottom: 3px;
+}
+</style>
+</head>
+
+<body>
+
+<h2>📡 Live Market Dashboard</h2>
+
+<div class="container" id="feeds"></div>
+
+<script>
+const SECURITY_MAP = {
+  "13": "NIFTY",
+  "21": "INDIA VIX",
+  "51": "SENSEX"
+};
+
+const securities = ["13", "21", "51"];
+const baseUrl = "wss://sr-webhook.up.railway.app/ws";
+
+const container = document.getElementById("feeds");
+
+// 🔥 store previous prices
+const prevPrices = {};
+
+function createCard(secId) {
+  const card = document.createElement("div");
+  card.className = "card";
+
+  const title = document.createElement("div");
+  title.className = "title";
+  title.textContent = `${SECURITY_MAP[secId]} (${secId})`;
+
+  const status = document.createElement("div");
+  status.className = "status";
+  status.textContent = "Connecting...";
+
+  const ltp = document.createElement("div");
+  ltp.className = "value";
+  ltp.textContent = "--";
+
+  const details = document.createElement("div");
+
+  card.appendChild(title);
+  card.appendChild(status);
+  card.appendChild(ltp);
+  card.appendChild(details);
+
+  container.appendChild(card);
+
+  connectWS(secId, status, ltp, details);
+}
+
+function connectWS(secId, statusEl, ltpEl, detailsEl) {
+  const ws = new WebSocket(`${baseUrl}/${secId}/quote`);
+
+  ws.onopen = () => {
+    statusEl.textContent = "🟢 Connected";
+    statusEl.className = "status live";
+  };
+
+  ws.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      const newPrice = parseFloat(data.LTP);
+
+      // 🔥 compare with previous
+      const prev = prevPrices[secId];
+
+      if (prev !== undefined) {
+        if (newPrice > prev) {
+          ltpEl.style.color = "#22c55e"; // green
+          flash(ltpEl, "#14532d");
+        } else if (newPrice < prev) {
+          ltpEl.style.color = "#ef4444"; // red
+          flash(ltpEl, "#7f1d1d");
+        }
+      }
+
+      prevPrices[secId] = newPrice;
+
+      // update value
+      ltpEl.textContent = newPrice;
+
+      // details
+      detailsEl.innerHTML = `
+        <div class="row"><span>LTT</span><span>${data.LTT}</span></div>
+        <div class="row"><span>Open</span><span>${data.open}</span></div>
+        <div class="row"><span>High</span><span>${data.high}</span></div>
+        <div class="row"><span>Low</span><span>${data.low}</span></div>
+        <div class="row"><span>Close</span><span>${data.close}</span></div>
+      `;
+
+    } catch {
+      ltpEl.textContent = "Parse error";
+    }
+  };
+
+  ws.onerror = () => {
+    statusEl.textContent = "🟠 Error";
+    statusEl.className = "status error";
+  };
+
+  ws.onclose = () => {
+    statusEl.textContent = "🔴 Reconnecting...";
+    statusEl.className = "status offline";
+
+    setTimeout(() => {
+      connectWS(secId, statusEl, ltpEl, detailsEl);
+    }, 2000);
+  };
+}
+
+// 🔥 flash effect
+function flash(el, color) {
+  const original = el.style.backgroundColor;
+  el.style.backgroundColor = color;
+
+  setTimeout(() => {
+    el.style.backgroundColor = original;
+  }, 200);
+}
+
+// init
+securities.forEach(createCard);
+</script>
+
+</body>
+</html>

@@ -11,6 +11,15 @@ BASE_URL = "wss://sr-webhook.up.railway.app/ws"
 SECURITIES = ["13", "21", "51"]
 
 seen_first_tick = {}
+prev_price_map = {}
+
+
+# 🔥 Security ID → Name Mapping
+SECURITY_NAME_MAP = {
+    "13": "NIFTY",
+    "21": "INDIA VIX",
+    "51": "SENSEX"
+}
 
 
 def get_config():
@@ -24,7 +33,6 @@ def log(msg, level="INFO"):
         print(msg)
     elif config.get("SHOW_LTP") and level == "LTP":
         print(msg)
-    # else → silent
 
 
 def on_message(ws, message, sec_id):
@@ -36,19 +44,39 @@ def on_message(ws, message, sec_id):
 
         config = get_config()
 
-        # ✅ FIRST TICK ONLY → print sample once
+        # -----------------------------
+        # ✅ FIRST TICK (print once)
+        # -----------------------------
         if not seen_first_tick.get(sec_id):
-            log(f"✅ [{sec_id}] FIRST DATA RECEIVED")
+            print(f"✅ [{sec_id}] FIRST DATA RECEIVED")
 
             if config.get("TEST_LOG"):
                 print(f"📥 [{sec_id}] SAMPLE DATA:\n{json.dumps(data, indent=2)}")
 
             seen_first_tick[sec_id] = True
-            return  # 🔥 stop further logging for this tick
 
-        # ✅ AFTER FIRST TICK → optional LTP only
+        # -----------------------------
+        # 📈 LTP LOGGING (CLEAN FORMAT)
+        # -----------------------------
         if config.get("SHOW_LTP"):
-            log(f"[{sec_id}] LTP: {data.get('LTP')}", level="LTP")
+            ltp_raw = data.get("LTP")
+
+            if ltp_raw is None:
+                return
+
+            ltp = float(ltp_raw)
+            name = SECURITY_NAME_MAP.get(str(sec_id), "UNKNOWN")
+
+            # 🔥 Price movement tracking
+            if sec_id in prev_price_map:
+                diff = ltp - prev_price_map[sec_id]
+                arrow = "⬆️" if diff > 0 else "⬇️" if diff < 0 else "➡️"
+            else:
+                arrow = "➡️"
+
+            prev_price_map[sec_id] = ltp
+
+            print(f"📈 {name:<10} | ID: {sec_id} | LTP: {ltp} {arrow}")
 
     except Exception as e:
         print(f"❌ [{sec_id}] Parse Error:", e)
@@ -65,7 +93,7 @@ def on_close(ws, close_status_code, close_msg, sec_id):
 
 
 def on_open(ws, sec_id):
-    log(f"🟢 [{sec_id}] CONNECTED")
+    print(f"🟢 [{sec_id}] CONNECTED")
 
     subscribe_msg = {
         "RequestCode": 15,
@@ -80,7 +108,7 @@ def on_open(ws, sec_id):
 
     try:
         ws.send(json.dumps(subscribe_msg))
-        log(f"📡 [{sec_id}] SUBSCRIBED")
+        print(f"📡 [{sec_id}] SUBSCRIBED")
     except Exception as e:
         print(f"❌ [{sec_id}] Subscription Error:", e)
 
@@ -88,7 +116,7 @@ def on_open(ws, sec_id):
 def start_ws(sec_id):
     ws_url = f"{BASE_URL}/{sec_id}/quote"
 
-    log(f"🔌 Connecting to {ws_url}")
+    print(f"🔌 Connecting to {ws_url}")
 
     ws = websocket.WebSocketApp(
         ws_url,
@@ -103,11 +131,10 @@ def start_ws(sec_id):
 
 def start_all():
     print("🔥 start_all() EXECUTED")
-
-    log("\n📡 Initializing WebSocket Feeds...\n")
+    print("\n📡 Initializing WebSocket Feeds...\n")
 
     for sec in SECURITIES:
-        log(f"🚀 Starting feed for Security {sec}")
+        print(f"🚀 Starting feed for Security {sec}")
 
         t = threading.Thread(target=start_ws, args=(sec,), daemon=True)
         t.start()

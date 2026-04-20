@@ -20,5 +20,6 @@ from django.urls import path,include
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('webhook/', include('webhook_app.urls')),
+    path("", include("ws_feed.urls")),
 
 ]

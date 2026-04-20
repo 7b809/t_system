@@ -1,3 +1,4 @@
 from django.shortcuts import render
 
-# Create your views here.
+def live_dashboard(request):
+    return render(request, "dashboard.html")

@@ -39,7 +39,7 @@ WS_FEED_CONFIG = {
     "SHOW_LTP": os.getenv("WS_SHOW_LTP", "False") == "True",
 }
 
-THRESHOLD_CHECK = True   # 🔥 disable range logic
+THRESHOLD_CHECK = True  # 🔥 disable range logic
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
@@ -65,9 +65,8 @@ INSTALLED_APPS = [
     "webhook_app",
     "ws_feed.apps.WsFeedConfig",
     "order_engine",
+    "option_selector",
 ]
-
-
 
 
 MIDDLEWARE = [

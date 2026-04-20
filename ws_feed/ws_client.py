@@ -8,7 +8,7 @@ from django.conf import settings
 
 
 BASE_URL = "wss://sr-webhook.up.railway.app/ws"
-SECURITIES = ["13", "21", "51", "5024"]
+SECURITIES = ["13", "21", "51"]
 
 seen_first_tick = {}
 
@@ -31,27 +31,31 @@ def on_message(ws, message, sec_id):
     try:
         data = json.loads(message)
 
+        # ✅ Always update latest price
         update_price(sec_id, data)
-
-        # ✅ First tick
-        if not seen_first_tick.get(sec_id):
-            log(f"✅ [{sec_id}] FIRST DATA RECEIVED")
-            seen_first_tick[sec_id] = True
 
         config = get_config()
 
-        if config.get("TEST_LOG"):
-            print(f"📥 [{sec_id}] SAMPLE DATA:\n{json.dumps(data, indent=2)}")
+        # ✅ FIRST TICK ONLY → print sample once
+        if not seen_first_tick.get(sec_id):
+            log(f"✅ [{sec_id}] FIRST DATA RECEIVED")
 
-        elif config.get("SHOW_LTP"):
+            if config.get("TEST_LOG"):
+                print(f"📥 [{sec_id}] SAMPLE DATA:\n{json.dumps(data, indent=2)}")
+
+            seen_first_tick[sec_id] = True
+            return  # 🔥 stop further logging for this tick
+
+        # ✅ AFTER FIRST TICK → optional LTP only
+        if config.get("SHOW_LTP"):
             log(f"[{sec_id}] LTP: {data.get('LTP')}", level="LTP")
 
     except Exception as e:
-        print(f"❌ [{sec_id}] Parse Error:", e)  # always show errors
+        print(f"❌ [{sec_id}] Parse Error:", e)
 
 
 def on_error(ws, error, sec_id):
-    print(f"🟠 [{sec_id}] ERROR:", error)  # always show
+    print(f"🟠 [{sec_id}] ERROR:", error)
 
 
 def on_close(ws, close_status_code, close_msg, sec_id):
@@ -98,20 +102,16 @@ def start_ws(sec_id):
 
 
 def start_all():
-    print("🔥 start_all() EXECUTED")  # always print (important debug)
+    print("🔥 start_all() EXECUTED")
 
     log("\n📡 Initializing WebSocket Feeds...\n")
-
-    threads = []
 
     for sec in SECURITIES:
         log(f"🚀 Starting feed for Security {sec}")
 
         t = threading.Thread(target=start_ws, args=(sec,), daemon=True)
         t.start()
-        threads.append(t)
 
-    # ❌ DO NOT use join() here
-    # ✅ Keep thread alive safely
+    # ✅ Keep process alive
     while True:
         time.sleep(1)

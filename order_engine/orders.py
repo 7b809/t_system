@@ -30,11 +30,11 @@ def place_order(alert, market_data):
     if mode == "PAPER":
         base_order["status"] = "EXECUTED"
 
-        save_order(base_order)
+        saved_order = save_order(base_order)
 
-        print("🧪 PAPER ORDER:", base_order)
+        print("🧪 PAPER ORDER:", saved_order)
 
-        return base_order
+        return saved_order
 
     # -------------------------
     # 🚀 LIVE TRADE
@@ -49,11 +49,11 @@ def place_order(alert, market_data):
         base_order["status"] = "LIVE_EXECUTED"
         base_order["broker_response"] = response
 
-        save_order(base_order)
+        saved_order = save_order(base_order)
 
-        print("🚀 LIVE ORDER:", base_order)
+        print("🚀 LIVE ORDER:", saved_order)
 
-        return base_order
+        return saved_order
 
     else:
         return {
@@ -63,13 +63,40 @@ def place_order(alert, market_data):
 
 
 def save_order(order):
+    """
+    Save order in Mongo and return JSON-safe order
+    """
     try:
         collection = get_orders_collection()
-        collection.insert_one(order)
+
+        result = collection.insert_one(order)
+
+        # ✅ Add _id as string (IMPORTANT FIX)
+        order["_id"] = str(result.inserted_id)
+
+        return order
+
     except Exception as e:
         print("❌ Mongo save error:", e)
+        return {
+            "status": "error",
+            "msg": str(e)
+        }
+
+
+def serialize_order(doc):
+    """
+    Convert Mongo document to JSON-safe format
+    """
+    if "_id" in doc:
+        doc["_id"] = str(doc["_id"])
+    return doc
 
 
 def get_all_orders():
     collection = get_orders_collection()
-    return list(collection.find({}, {"_id": 0}))
+
+    orders = list(collection.find())
+
+    # ✅ Convert all ObjectId → string
+    return [serialize_order(o) for o in orders]

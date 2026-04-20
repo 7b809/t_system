@@ -39,6 +39,8 @@ WS_FEED_CONFIG = {
     "SHOW_LTP": os.getenv("WS_SHOW_LTP", "False") == "True",
 }
 
+THRESHOLD_CHECK = True   # 🔥 disable range logic
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 

@@ -1,8 +1,12 @@
 import json
+import os
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
 from .services import process_alert
+
+# 🔹 Direct flag (no helper function)
+BASIC_LOGS = os.getenv("BASIC_LOGS", "false").lower() == "true"
 
 
 @csrf_exempt
@@ -14,7 +18,14 @@ def tradingview_webhook(request):
         try:
             data = json.loads(request.body)
 
+            # 🔹 Conditional logging
+            if BASIC_LOGS:
+                print("📩 Incoming Webhook:", data)
+
             result = process_alert(data)
+
+            if BASIC_LOGS:
+                print("✅ Processed Result:", result)
 
             return JsonResponse({
                 "status": "success",
@@ -22,6 +33,9 @@ def tradingview_webhook(request):
             })
 
         except Exception as e:
+            if BASIC_LOGS:
+                print("❌ Error:", str(e))
+
             return JsonResponse({"error": str(e)}, status=400)
 
 
@@ -37,9 +51,13 @@ def tradingview_webhook_with_id(request, security_id):
             # 🔥 Inject security_id into alert
             data["security_id"] = security_id
 
-            print(f"📩 Incoming for Security {security_id}:", data)
+            if BASIC_LOGS:
+                print(f"📩 Incoming for Security {security_id}:", data)
 
             result = process_alert(data)
+
+            if BASIC_LOGS:
+                print(f"✅ Processed Result for {security_id}:", result)
 
             return JsonResponse({
                 "status": "success",
@@ -48,4 +66,7 @@ def tradingview_webhook_with_id(request, security_id):
             })
 
         except Exception as e:
+            if BASIC_LOGS:
+                print(f"❌ Error for {security_id}:", str(e))
+
             return JsonResponse({"error": str(e)}, status=400)

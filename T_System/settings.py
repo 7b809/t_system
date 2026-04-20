@@ -26,9 +26,11 @@ import os
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "fallback-secret")
 DEBUG = os.getenv("DEBUG", "False") == "True"
 TEST_LOG = os.getenv("TEST_LOG", "false").lower() == "true"
+BASIC_LOGS  = os.getenv("TEST_LOG", "false").lower() == "true"
+
 # Mongo
-MONGO_URI = os.getenv("MONGO_URI")
-MONGO_DB_NAME = os.getenv("MONGO_DB_NAME", "trading")
+MONGO_URI = os.getenv("AUTH_MONGO_URI")
+MONGO_DB_NAME = os.getenv("AUTH_DB_NAME", "trading")
 
 # Trading safety
 ALLOW_LIVE_TRADING = os.getenv("ALLOW_LIVE_TRADING", "False") == "True"

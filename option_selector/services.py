@@ -2,13 +2,18 @@ import os
 from core.get_keys import load_valid_dhan_credentials
 from dhanhq import dhanhq
 
-# ✅ ENV FLAG
-TEST_LOG = os.getenv("TEST_LOG", "false").lower() == "true"
+# ✅ SINGLE SOURCE OF TRUTH
+BASIC_LOGS = os.getenv("BASIC_LOGS", "false").lower() == "true"
 
 
 def log(msg):
-    if TEST_LOG:
+    if BASIC_LOGS:
         print(msg)
+
+
+def log_line():
+    if BASIC_LOGS:
+        print("-" * 40)
 
 
 def get_nearest_strike_data(option_chain_json, target_price):
@@ -46,25 +51,29 @@ def get_option_contract(security_id, option_type):
     """
 
     try:
-        log(f"🔍 Fetching option contract for SecID={security_id}, Type={option_type}")
+        log_line()
+        log(f"🔍 Fetching option contract | SecID={security_id} | Type={option_type}")
 
         # -----------------------------
         # 🔐 STEP 0: Credentials
         # -----------------------------
+        log_line()
+
         creds = load_valid_dhan_credentials()
 
         if not creds:
             return {"error": "No valid credentials"}
 
-        if TEST_LOG:
-            masked_client = creds["client_id"][:4] + "****"
-            log(f"🔐 Using Client ID: {masked_client}")
+        masked_client = creds["client_id"][:4] + "****"
+        log(f"🔐 Using Client ID: {masked_client}")
 
         dhan_instance = dhanhq(creds['client_id'], creds['access_token'])
 
         # -----------------------------
         # 📅 STEP 1: Expiry
         # -----------------------------
+        log_line()
+
         expiry_data = dhan_instance.expiry_list(
             under_security_id=int(security_id),
             under_exchange_segment="IDX_I"
@@ -83,6 +92,8 @@ def get_option_contract(security_id, option_type):
         # -----------------------------
         # 📊 STEP 2: Option Chain
         # -----------------------------
+        log_line()
+
         oc = dhan_instance.option_chain(
             under_security_id=int(security_id),
             under_exchange_segment="IDX_I",
@@ -99,6 +110,8 @@ def get_option_contract(security_id, option_type):
         # -----------------------------
         # 📈 STEP 3: Spot Price
         # -----------------------------
+        log_line()
+
         spot_price = oc_data.get("last_price")
 
         if spot_price is None:
@@ -109,6 +122,8 @@ def get_option_contract(security_id, option_type):
         # -----------------------------
         # 🎯 STEP 4: Nearest Strike
         # -----------------------------
+        log_line()
+
         result = get_nearest_strike_data(oc, spot_price)
 
         log(f"🎯 Nearest Strike Data: {result}")
@@ -119,6 +134,8 @@ def get_option_contract(security_id, option_type):
         # -----------------------------
         # 🧾 STEP 5: Select Contract
         # -----------------------------
+        log_line()
+
         if option_type == "buyCE":
             sec_id = result.get("ce_security_id")
             price = result.get("ce_price")
@@ -133,6 +150,8 @@ def get_option_contract(security_id, option_type):
         # -----------------------------
         # ❌ FINAL VALIDATION
         # -----------------------------
+        log_line()
+
         if not sec_id or price is None:
             return {"error": "Invalid contract data"}
 
@@ -141,6 +160,8 @@ def get_option_contract(security_id, option_type):
         # -----------------------------
         # ✅ FINAL RESPONSE
         # -----------------------------
+        log_line()
+
         return {
             "security_id": sec_id,
             "price": price,
@@ -149,5 +170,6 @@ def get_option_contract(security_id, option_type):
         }
 
     except Exception as e:
-        log(f"❌ Exception in get_option_contract: {str(e)}")
+        # 🔥 ALWAYS log errors
+        print(f"❌ Exception in get_option_contract: {str(e)}")
         return {"error": str(e)}

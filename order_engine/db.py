@@ -1,23 +1,33 @@
-from core.db import get_mongo_client   # ✅ shared Mongo client
+import os
+from core.db import get_order_mongo_client   # ✅ correct client
+from dotenv import load_dotenv
 
-DB_NAME = "trading"
-COLLECTION_NAME = "orders"
+load_dotenv()
+
+# -----------------------------------
+# 🔧 CONFIG FROM ENV
+# -----------------------------------
+DB_NAME = os.getenv("ORDER_DB_NAME", "trading")
+COLLECTION_NAME = os.getenv("ORDER_COLLECTION_NAME", "orders")
 
 _collection = None
 
 
+# -----------------------------------
+# 📦 GET ORDERS COLLECTION
+# -----------------------------------
 def get_orders_collection():
     global _collection
 
     if _collection is None:
-        client = get_mongo_client()   # ✅ reuse global client
+        client = get_order_mongo_client()   # ✅ FIXED
 
         if client is None:
-            raise ValueError("❌ Mongo client not initialized")
+            raise ValueError("❌ Order Mongo client not initialized")
 
         db = client[DB_NAME]
         _collection = db[COLLECTION_NAME]
 
-        print("✅ Mongo Orders Connected")
+        print(f"✅ Mongo Orders Connected → DB: {DB_NAME}, Collection: {COLLECTION_NAME}")
 
     return _collection

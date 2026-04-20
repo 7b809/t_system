@@ -1,30 +1,43 @@
 from datetime import datetime, timezone
+import os
+from dotenv import load_dotenv
 
-from core.db import get_mongo_client   # ✅ shared Mongo client
+from core.db import get_auth_mongo_client   # ✅ FIXED
 
-DB_NAME = "trading"
-COLLECTION_NAME = "auth"
+load_dotenv()
+
+# -----------------------------------
+# 🔧 CONFIG FROM ENV
+# -----------------------------------
+DB_NAME = os.getenv("AUTH_DB_NAME", "dhan_system")
+COLLECTION_NAME = os.getenv("AUTH_COLLECTION_NAME", "access_tokens")
 
 _collection = None
 
 
+# -----------------------------------
+# 📦 GET COLLECTION
+# -----------------------------------
 def get_collection():
     global _collection
 
     if _collection is None:
-        client = get_mongo_client()   # ✅ reuse global client
+        client = get_auth_mongo_client()   # ✅ FIXED
 
         if client is None:
-            raise ValueError("❌ Mongo client not initialized")
+            raise ValueError("❌ Auth Mongo client not initialized")
 
         db = client[DB_NAME]
         _collection = db[COLLECTION_NAME]
 
-        print("✅ MongoDB connected")
+        print(f"✅ Auth Mongo Connected → DB: {DB_NAME}, Collection: {COLLECTION_NAME}")
 
     return _collection
 
 
+# -----------------------------------
+# 🔐 LOAD VALID DHAN CREDENTIALS
+# -----------------------------------
 def load_valid_dhan_credentials():
     try:
         collection = get_collection()
@@ -45,7 +58,14 @@ def load_valid_dhan_credentials():
             print("❌ Missing fields")
             return None
 
-        expiry_dt = datetime.fromisoformat(expiry.replace("Z", "+00:00"))
+        # ✅ Fix timezone safely
+        if expiry.endswith("Z"):
+            expiry = expiry.replace("Z", "+00:00")
+
+        expiry_dt = datetime.fromisoformat(expiry)
+
+        if expiry_dt.tzinfo is None:
+            expiry_dt = expiry_dt.replace(tzinfo=timezone.utc)
 
         if datetime.now(timezone.utc) >= expiry_dt:
             print("❌ Token expired")

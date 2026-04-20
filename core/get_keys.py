@@ -3,17 +3,20 @@ from datetime import datetime, timezone
 from dotenv import load_dotenv
 import logging
 
-from core.db import get_mongo_client   # ✅ USE SHARED DB
+from core.db import get_auth_mongo_client  # ✅ correct client
 
 logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-DB_NAME = "trading"
-COLLECTION_NAME = "auth"
+# -----------------------------------
+# 🔧 DB CONFIG (can override via .env)
+# -----------------------------------
+DB_NAME = os.getenv("AUTH_DB_NAME", "trading")
+COLLECTION_NAME = os.getenv("AUTH_COLLECTION_NAME", "auth")
 
-# ✅ NEW: Debug flag from .env
-TEST_LOG = os.getenv("TEST_LOG", "false").lower() == "true"
+# ✅ Debug flag
+BASIC_LOGS = os.getenv("BASIC_LOGS", "false").lower() == "true"
 
 # -----------------------------------
 # COLLECTION (singleton style)
@@ -25,16 +28,16 @@ def get_collection():
     global _collection
 
     if _collection is None:
-        client = get_mongo_client()
+        client = get_auth_mongo_client()   # ✅ FIXED
 
         if client is None:
-            raise ValueError("❌ Mongo client not initialized")
+            raise ValueError("❌ Auth Mongo client not initialized")
 
         db = client[DB_NAME]
         _collection = db[COLLECTION_NAME]
 
-        if TEST_LOG:
-            print("✅ MongoDB collection ready")
+        if BASIC_LOGS:
+            print(f"✅ Auth Mongo ready → DB: {DB_NAME}, Collection: {COLLECTION_NAME}")
 
     return _collection
 
@@ -52,7 +55,7 @@ def save_token_to_mongo(data: dict):
             upsert=True
         )
 
-        if TEST_LOG:
+        if BASIC_LOGS:
             print("✅ Token saved to MongoDB")
 
     except Exception as e:
@@ -74,7 +77,7 @@ def fetch_token_from_mongo():
 
         data.pop("_id", None)
 
-        if TEST_LOG:
+        if BASIC_LOGS:
             print("📥 Token fetched from MongoDB")
 
         return data
@@ -93,7 +96,7 @@ def delete_token_from_mongo():
 
         collection.delete_one({"_id": "dhan_token"})
 
-        if TEST_LOG:
+        if BASIC_LOGS:
             print("🗑️ Token deleted from MongoDB")
 
     except Exception as e:
@@ -119,7 +122,7 @@ def load_dhan_credentials():
         return None
 
     try:
-        # ✅ Fix timezone issue (important)
+        # ✅ Normalize timezone
         if expiry_time.endswith("Z"):
             expiry_time = expiry_time.replace("Z", "+00:00")
 
@@ -132,8 +135,8 @@ def load_dhan_credentials():
         print("❌ Invalid expiry format")
         return None
 
-    # ✅ SAFE DEBUG LOG
-    if TEST_LOG:
+    # ✅ Safe debug
+    if BASIC_LOGS:
         masked_client = dhan_client_id[:4] + "****"
         masked_token = access_token[:6] + "******"
 
@@ -162,7 +165,7 @@ def load_valid_dhan_credentials():
         logger.error("Token expired")
         return None
 
-    if TEST_LOG:
+    if BASIC_LOGS:
         print("✅ Token is valid")
 
     return creds

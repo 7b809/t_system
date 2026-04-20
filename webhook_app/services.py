@@ -19,9 +19,13 @@ def process_alert(data):
         security_id = data.get("security_id")
         mode = data.get("mode", "PAPER").upper()   # ✅ NEW
 
+        # ✅ NEW: extract force_order (default False)
+        force_order = data.get("force_order", False)
+
         print("📩 Incoming Message:", raw_message)
         print("📌 Security ID:", security_id)
         print("⚙️ Mode:", mode)
+        print("⚡ Force Order:", force_order)
 
         # ❌ Validation
         if not raw_message:
@@ -53,7 +57,10 @@ def process_alert(data):
 
         # ✅ Step 3: Attach required fields
         parsed["security_id"] = str(security_id)
-        parsed["mode"] = mode   # 🔥 IMPORTANT
+        parsed["mode"] = mode
+
+        # ✅ ADD THIS (CRITICAL FIX)
+        parsed["force_order"] = force_order
 
         print("✅ Parsed Data:", parsed)
 

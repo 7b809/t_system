@@ -25,7 +25,7 @@ import os
 # Core
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "fallback-secret")
 DEBUG = os.getenv("DEBUG", "False") == "True"
-
+TEST_LOG = os.getenv("TEST_LOG", "false").lower() == "true"
 # Mongo
 MONGO_URI = os.getenv("MONGO_URI")
 MONGO_DB_NAME = os.getenv("MONGO_DB_NAME", "trading")
@@ -66,6 +66,8 @@ INSTALLED_APPS = [
     "ws_feed.apps.WsFeedConfig",
     "order_engine",
     "option_selector",
+    'core',
+
 ]
 
 

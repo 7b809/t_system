@@ -1,22 +1,22 @@
-import os
-from pymongo import MongoClient
-from dotenv import load_dotenv
+from core.db import get_mongo_client   # ✅ shared Mongo client
 
-load_dotenv()
+DB_NAME = "trading"
+COLLECTION_NAME = "orders"
 
-MONGO_URI = os.getenv("MONGO_URI")
-
-_client = None
 _collection = None
 
 
 def get_orders_collection():
-    global _client, _collection
+    global _collection
 
     if _collection is None:
-        _client = MongoClient(MONGO_URI)
-        db = _client["trading"]
-        _collection = db["orders"]
+        client = get_mongo_client()   # ✅ reuse global client
+
+        if client is None:
+            raise ValueError("❌ Mongo client not initialized")
+
+        db = client[DB_NAME]
+        _collection = db[COLLECTION_NAME]
 
         print("✅ Mongo Orders Connected")
 

@@ -1,27 +1,23 @@
-import os
 from datetime import datetime, timezone
-from pymongo import MongoClient
-from dotenv import load_dotenv
 
-load_dotenv()
+from core.db import get_mongo_client   # ✅ shared Mongo client
 
-MONGO_URI = os.getenv("MONGO_URI")
 DB_NAME = "trading"
 COLLECTION_NAME = "auth"
 
-_client = None
 _collection = None
 
 
 def get_collection():
-    global _client, _collection
+    global _collection
 
     if _collection is None:
-        if not MONGO_URI:
-            raise ValueError("❌ MONGO_URI not found")
+        client = get_mongo_client()   # ✅ reuse global client
 
-        _client = MongoClient(MONGO_URI)
-        db = _client[DB_NAME]
+        if client is None:
+            raise ValueError("❌ Mongo client not initialized")
+
+        db = client[DB_NAME]
         _collection = db[COLLECTION_NAME]
 
         print("✅ MongoDB connected")

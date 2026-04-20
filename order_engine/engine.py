@@ -27,14 +27,44 @@ def should_place_order(alert):
         index_sec_id = str(alert['security_id'])
         option_type = alert.get("type")
 
+        # ✅ force_order flag
+        force_order = alert.get("force_order", False)
+
         # -----------------------------
         # 📡 STEP 1: GET INDEX LTP
         # -----------------------------
         live_data = get_price(index_sec_id)
 
+        # -----------------------------
+        # 🔥 FORCE ORDER FALLBACK
+        # -----------------------------
         if not live_data:
-            return False, f"No live data for security_id={index_sec_id}"
+            if not force_order:
+                return False, f"No live data for security_id={index_sec_id}"
 
+            print("⚡ FORCE ORDER → No live data, using option chain")
+
+            option_data = get_option_contract(
+                security_id=index_sec_id,
+                option_type=option_type
+            )
+            print("DEBUG option_data:", option_data)
+            # ✅ SAFE VALIDATION
+            if not isinstance(option_data, dict) or "error" in option_data:
+                return False, option_data.get("error", "Invalid option data")
+
+            return True, {
+                "sec_id": str(option_data["security_id"]),
+                "ltp": float(option_data["price"]),
+                "alert_price": alert_price,
+                "index_ltp": option_data.get("spot_price"),  # 🔥 better than None
+                "mode": "FORCED_OPTION_CHAIN",
+                "strike": option_data.get("strike")
+            }
+
+        # -----------------------------
+        # NORMAL FLOW CONTINUES
+        # -----------------------------
         ltp_raw = live_data.get("LTP")
 
         if ltp_raw is None:
@@ -57,12 +87,13 @@ def should_place_order(alert):
                 option_type=option_type
             )
 
-            if "error" in option_data:
-                return False, option_data["error"]
+            # ✅ SAFE VALIDATION
+            if not isinstance(option_data, dict) or "error" in option_data:
+                return False, option_data.get("error", "Invalid option data")
 
             return True, {
-                "sec_id": str(option_data["security_id"]),   # ✅ OPTION CONTRACT ID
-                "ltp": float(option_data["price"]),          # ✅ OPTION PRICE
+                "sec_id": str(option_data["security_id"]),
+                "ltp": float(option_data["price"]),
                 "alert_price": alert_price,
                 "index_ltp": index_ltp,
                 "mode": "MARKET_EXECUTION",
@@ -80,8 +111,9 @@ def should_place_order(alert):
                 option_type=option_type
             )
 
-            if "error" in option_data:
-                return False, option_data["error"]
+            # ✅ SAFE VALIDATION
+            if not isinstance(option_data, dict) or "error" in option_data:
+                return False, option_data.get("error", "Invalid option data")
 
             return True, {
                 "sec_id": str(option_data["security_id"]),

@@ -1,0 +1,196 @@
+Folder PATH listing for volume New Volume
+Volume serial number is C028-1B85
+D:.
+¦   .env
+¦   .gitignore
+¦   db.sqlite3
+¦   download_inst.py
+¦   file.txt
+¦   manage.py
+¦   requirements.txt
+¦   run_file.bat
+¦   
++---core
+¦   ¦   admin.py
+¦   ¦   apps.py
+¦   ¦   db.py
+¦   ¦   get_keys.py
+¦   ¦   models.py
+¦   ¦   tests.py
+¦   ¦   views.py
+¦   ¦   __init__.py
+¦   ¦   
+¦   +---migrations
+¦   ¦   ¦   __init__.py
+¦   ¦   ¦   
+¦   ¦   +---__pycache__
+¦   ¦           __init__.cpython-312.pyc
+¦   ¦           
+¦   +---__pycache__
+¦           admin.cpython-312.pyc
+¦           apps.cpython-312.pyc
+¦           db.cpython-312.pyc
+¦           get_keys.cpython-312.pyc
+¦           models.cpython-312.pyc
+¦           __init__.cpython-312.pyc
+¦           
++---dhan_app
+¦   ¦   admin.py
+¦   ¦   apps.py
+¦   ¦   models.py
+¦   ¦   tests.py
+¦   ¦   views.py
+¦   ¦   __init__.py
+¦   ¦   
+¦   +---migrations
+¦   ¦       __init__.py
+¦   ¦       
+¦   +---services
+¦   ¦   ¦   auth.py
+¦   ¦   ¦   client.py
+¦   ¦   ¦   orders.py
+¦   ¦   ¦   portfolio.py
+¦   ¦   ¦   
+¦   ¦   +---__pycache__
+¦   ¦           auth.cpython-312.pyc
+¦   ¦           client.cpython-312.pyc
+¦   ¦           orders.cpython-312.pyc
+¦   ¦           
+¦   +---__pycache__
+¦           __init__.cpython-312.pyc
+¦           
++---downloads
+¦       api-scrip-master-1.json
+¦       
++---option_selector
+¦   ¦   admin.py
+¦   ¦   apps.py
+¦   ¦   models.py
+¦   ¦   services.py
+¦   ¦   tests.py
+¦   ¦   views.py
+¦   ¦   __init__.py
+¦   ¦   
+¦   +---migrations
+¦   ¦   ¦   __init__.py
+¦   ¦   ¦   
+¦   ¦   +---__pycache__
+¦   ¦           __init__.cpython-312.pyc
+¦   ¦           
+¦   +---__pycache__
+¦           admin.cpython-312.pyc
+¦           apps.cpython-312.pyc
+¦           get_keys.cpython-312.pyc
+¦           models.cpython-312.pyc
+¦           services.cpython-312.pyc
+¦           __init__.cpython-312.pyc
+¦           
++---order_engine
+¦   ¦   admin.py
+¦   ¦   apps.py
+¦   ¦   db.py
+¦   ¦   engine.py
+¦   ¦   models.py
+¦   ¦   orders.py
+¦   ¦   tests.py
+¦   ¦   views.py
+¦   ¦   __init__.py
+¦   ¦   
+¦   +---migrations
+¦   ¦   ¦   __init__.py
+¦   ¦   ¦   
+¦   ¦   +---__pycache__
+¦   ¦           __init__.cpython-312.pyc
+¦   ¦           
+¦   +---__pycache__
+¦           admin.cpython-312.pyc
+¦           apps.cpython-312.pyc
+¦           db.cpython-312.pyc
+¦           engine.cpython-312.pyc
+¦           models.cpython-312.pyc
+¦           orders.cpython-312.pyc
+¦           __init__.cpython-312.pyc
+¦           
++---T_System
+¦   ¦   asgi.py
+¦   ¦   settings.py
+¦   ¦   urls.py
+¦   ¦   wsgi.py
+¦   ¦   __init__.py
+¦   ¦   
+¦   +---__pycache__
+¦           settings.cpython-312.pyc
+¦           urls.cpython-312.pyc
+¦           wsgi.cpython-312.pyc
+¦           __init__.cpython-312.pyc
+¦           
++---webhook_app
+¦   ¦   admin.py
+¦   ¦   apps.py
+¦   ¦   models.py
+¦   ¦   services.py
+¦   ¦   tests.py
+¦   ¦   urls.py
+¦   ¦   utils.py
+¦   ¦   views.py
+¦   ¦   __init__.py
+¦   ¦   
+¦   +---migrations
+¦   ¦   ¦   __init__.py
+¦   ¦   ¦   
+¦   ¦   +---__pycache__
+¦   ¦           __init__.cpython-312.pyc
+¦   ¦           
+¦   +---__pycache__
+¦           admin.cpython-312.pyc
+¦           apps.cpython-312.pyc
+¦           models.cpython-312.pyc
+¦           services.cpython-312.pyc
+¦           urls.cpython-312.pyc
+¦           utils.cpython-312.pyc
+¦           views.cpython-312.pyc
+¦           __init__.cpython-312.pyc
+¦           
++---ws_feed
+¦   ¦   admin.py
+¦   ¦   apps.py
+¦   ¦   models.py
+¦   ¦   price_store.py
+¦   ¦   tests.py
+¦   ¦   urls.py
+¦   ¦   views.py
+¦   ¦   ws_client.py
+¦   ¦   __init__.py
+¦   ¦   
+¦   +---management
+¦   ¦   +---commands
+¦   ¦       ¦   run_ws.py
+¦   ¦       ¦   
+¦   ¦       +---__pycache__
+¦   ¦               run_ws.cpython-312.pyc
+¦   ¦               
+¦   +---migrations
+¦   ¦   ¦   __init__.py
+¦   ¦   ¦   
+¦   ¦   +---__pycache__
+¦   ¦           __init__.cpython-312.pyc
+¦   ¦           
+¦   +---templates
+¦   ¦       dashboard.html
+¦   ¦       
+¦   +---__pycache__
+¦           admin.cpython-312.pyc
+¦           apps.cpython-312.pyc
+¦           models.cpython-312.pyc
+¦           price_store.cpython-312.pyc
+¦           urls.cpython-312.pyc
+¦           views.cpython-312.pyc
+¦           ws_client.cpython-312.pyc
+¦           __init__.cpython-312.pyc
+¦           
++---wv
+        alerts.csv
+        logs.csv
+        output.json
+        output1.json
+        

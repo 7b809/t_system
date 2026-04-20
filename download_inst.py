@@ -23,9 +23,6 @@ def download_json_file(url, save_path):
     except Exception as e:
         print(f"❌ Error downloading file: {e}")
 
-import requests
-import os
-import json
 
 def download_json_file(url, save_path):
     try:

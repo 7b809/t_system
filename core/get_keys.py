@@ -1,33 +1,40 @@
 import os
-from datetime import datetime
-from pymongo import MongoClient
-from dotenv import load_dotenv
 from datetime import datetime, timezone
+from dotenv import load_dotenv
+import logging
+
+from core.db import get_mongo_client   # ✅ USE SHARED DB
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-MONGO_URI = os.getenv("MONGO_URI")
 DB_NAME = "trading"
 COLLECTION_NAME = "auth"
 
+# ✅ NEW: Debug flag from .env
+TEST_LOG = os.getenv("TEST_LOG", "false").lower() == "true"
+
 # -----------------------------------
-# CONNECT (singleton style)
+# COLLECTION (singleton style)
 # -----------------------------------
-_client = None
 _collection = None
 
+
 def get_collection():
-    global _client, _collection
+    global _collection
 
     if _collection is None:
-        if not MONGO_URI:
-            raise ValueError("❌ MONGO_URI not found in .env")
+        client = get_mongo_client()
 
-        _client = MongoClient(MONGO_URI)
-        db = _client[DB_NAME]
+        if client is None:
+            raise ValueError("❌ Mongo client not initialized")
+
+        db = client[DB_NAME]
         _collection = db[COLLECTION_NAME]
 
-        print("✅ MongoDB connected")
+        if TEST_LOG:
+            print("✅ MongoDB collection ready")
 
     return _collection
 
@@ -45,7 +52,8 @@ def save_token_to_mongo(data: dict):
             upsert=True
         )
 
-        print("✅ Token saved to MongoDB")
+        if TEST_LOG:
+            print("✅ Token saved to MongoDB")
 
     except Exception as e:
         print(f"❌ Mongo save error: {e}")
@@ -64,7 +72,10 @@ def fetch_token_from_mongo():
             print("❌ No token found in MongoDB")
             return None
 
-        data.pop("_id", None)  # remove internal id
+        data.pop("_id", None)
+
+        if TEST_LOG:
+            print("📥 Token fetched from MongoDB")
 
         return data
 
@@ -81,14 +92,16 @@ def delete_token_from_mongo():
         collection = get_collection()
 
         collection.delete_one({"_id": "dhan_token"})
-        print("🗑️ Token deleted from MongoDB")
+
+        if TEST_LOG:
+            print("🗑️ Token deleted from MongoDB")
 
     except Exception as e:
         print(f"❌ Mongo delete error: {e}")
 
 
 # -----------------------------------
-# LOAD DHAN CREDENTIALS (CORE FUNCTION)
+# LOAD DHAN CREDENTIALS
 # -----------------------------------
 def load_dhan_credentials():
     data = fetch_token_from_mongo()
@@ -101,21 +114,33 @@ def load_dhan_credentials():
     access_token = data.get("accessToken")
     expiry_time = data.get("expiryTime")
 
-    # ✅ Validate required fields
     if not dhan_client_id or not access_token or not expiry_time:
         print("❌ Missing required token fields")
         return None
 
-    # ✅ Convert expiry string → datetime
     try:
-        if not expiry_time.endswith("Z"):
-            expiry_time = expiry_time + "Z"
+        # ✅ Fix timezone issue (important)
+        if expiry_time.endswith("Z"):
+            expiry_time = expiry_time.replace("Z", "+00:00")
 
-        expiry_dt = datetime.fromisoformat(expiry_time.replace("Z", "+00:00"))
+        expiry_dt = datetime.fromisoformat(expiry_time)
+
+        if expiry_dt.tzinfo is None:
+            expiry_dt = expiry_dt.replace(tzinfo=timezone.utc)
 
     except Exception:
         print("❌ Invalid expiry format")
         return None
+
+    # ✅ SAFE DEBUG LOG
+    if TEST_LOG:
+        masked_client = dhan_client_id[:4] + "****"
+        masked_token = access_token[:6] + "******"
+
+        print("🔐 Credentials Loaded:")
+        print(f"   Client ID: {masked_client}")
+        print(f"   Access Token: {masked_token}")
+        print(f"   Expiry: {expiry_dt}")
 
     return {
         "client_id": dhan_client_id,
@@ -125,7 +150,7 @@ def load_dhan_credentials():
 
 
 # -----------------------------------
-# LOAD ONLY VALID TOKEN (BEST PRACTICE)
+# LOAD ONLY VALID TOKEN
 # -----------------------------------
 def load_valid_dhan_credentials():
     creds = load_dhan_credentials()
@@ -133,10 +158,12 @@ def load_valid_dhan_credentials():
     if not creds:
         return None
 
-
     if datetime.now(timezone.utc) >= creds["expiry"]:
-        print("❌ Token expired")
+        logger.error("Token expired")
         return None
+
+    if TEST_LOG:
+        print("✅ Token is valid")
 
     return creds
 

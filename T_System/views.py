@@ -1,9 +1,10 @@
 from django.shortcuts import render
 from django.core.paginator import Paginator
-from order_engine.engine import get_all_orders
+from order_engine.orders import get_all_orders   # ✅ CORRECT
 
 def home(request):
     orders = get_all_orders()
+
     orders = sorted(orders, key=lambda x: x.get("timestamp", ""), reverse=True)
 
     paginator = Paginator(orders, 10)

@@ -15,18 +15,20 @@ def log_line():
     if BASIC_LOGS:
         print("-" * 40)
 
-
-def get_nearest_strike_data(option_chain_json, target_price):
+def get_nearest_strike_data(option_chain_json, target_price, option_type):
     try:
         oc_data = option_chain_json.get("data", {}).get("data", {}).get("oc", {})
 
         if not oc_data:
             return {"error": "Option chain data missing"}
 
-        strikes = [float(k) for k in oc_data.keys()]
-        nearest_strike = min(strikes, key=lambda x: abs(x - target_price))
-        strike_key = f"{nearest_strike:.6f}"
+        strikes = sorted([float(k) for k in oc_data.keys()])
 
+        # 🎯 ALWAYS FLOOR (for both CE & PE)
+        valid_strikes = [s for s in strikes if s <= target_price]
+        nearest_strike = max(valid_strikes) if valid_strikes else strikes[0]
+
+        strike_key = f"{nearest_strike:.6f}"
         strike_data = oc_data.get(strike_key, {})
 
         ce = strike_data.get("ce", {})
@@ -42,7 +44,6 @@ def get_nearest_strike_data(option_chain_json, target_price):
 
     except Exception as e:
         return {"error": str(e)}
-
 
 def get_option_contract(security_id, option_type):
     """
@@ -124,7 +125,7 @@ def get_option_contract(security_id, option_type):
         # -----------------------------
         log_line()
 
-        result = get_nearest_strike_data(oc, spot_price)
+        result = get_nearest_strike_data(oc, spot_price, option_type)
 
         log(f"🎯 Nearest Strike Data: {result}")
 

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Orders Dashboard</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; }
+        th { background: #222; color: #fff; }
+        tr:nth-child(even) { background: #f2f2f2; }
+        .pagination { margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+<h2>📊 Orders Dashboard</h2>
+
+<table>
+    <tr>
+        <th>Time</th>
+        <th>Index</th>
+        <th>Type</th>
+        <th>Strike</th>
+        <th>Status</th>
+        <th>Price</th>
+        <th>Mode</th>
+    </tr>
+
+    {% for order in page_obj %}
+    <tr>
+        <td>{{ order.timestamp }}</td>
+        <td>{{ order.index_id }}</td>
+        <td>{{ order.type }}</td>
+        <td>{{ order.strike }}</td>
+        <td>{{ order.status }}</td>
+        <td>{{ order.executed_price }}</td>
+        <td>{{ order.mode }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+<div class="pagination">
+    {% if page_obj.has_previous %}
+        <a href="?page=1">⬅ First</a>
+        <a href="?page={{ page_obj.previous_page_number }}">Prev</a>
+    {% endif %}
+
+    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+
+    {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}">Next</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}">Last ➡</a>
+    {% endif %}
+</div>
+
+</body>
+</html>

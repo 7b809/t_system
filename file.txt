@@ -7,7 +7,9 @@ D:.
 ¦   download_inst.py
 ¦   file.txt
 ¦   manage.py
+¦   Procfile
 ¦   requirements.txt
+¦   runtime.txt
 ¦   run_file.bat
 ¦   
 +---core
@@ -115,9 +117,13 @@ D:.
 ¦   ¦   asgi.py
 ¦   ¦   settings.py
 ¦   ¦   urls.py
+¦   ¦   views.py
 ¦   ¦   wsgi.py
 ¦   ¦   __init__.py
 ¦   ¦   
+¦   +---templates
+¦   ¦       index.html
+¦   ¦       
 ¦   +---__pycache__
 ¦           settings.cpython-312.pyc
 ¦           urls.cpython-312.pyc

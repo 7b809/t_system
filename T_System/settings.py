@@ -19,7 +19,8 @@ if raw_hosts == "*":
     ALLOWED_HOSTS = ["*"]
 else:
     ALLOWED_HOSTS = [h.strip() for h in raw_hosts.split(",") if h.strip()]
-    
+
+ALLOWED_HOSTS = ["127.0.0.1", "localhost","*"]    
     # --------------------------------------------------
 # 🧠 CUSTOM FLAGS (UNCHANGED)
 # --------------------------------------------------
@@ -81,7 +82,7 @@ ROOT_URLCONF = "T_System.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "T_System" / "templates"],  # ✅ ADD
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [

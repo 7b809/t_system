@@ -27,7 +27,7 @@ whitenoise
 # 🍃 MongoDB
 # -------------------------------
 pymongo
-
+whitenoise
 # -------------------------------
 # 🔐 Environment Variables
 # -------------------------------

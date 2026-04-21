@@ -13,8 +13,14 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "fallback-secret")
 
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
-ALLOWED_HOSTS='.railway.app'
-# --------------------------------------------------
+raw_hosts = os.getenv("ALLOWED_HOSTS", "*")
+
+if raw_hosts == "*":
+    ALLOWED_HOSTS = ["*"]
+else:
+    ALLOWED_HOSTS = [h.strip() for h in raw_hosts.split(",") if h.strip()]
+    
+    # --------------------------------------------------
 # 🧠 CUSTOM FLAGS (UNCHANGED)
 # --------------------------------------------------
 TEST_LOG = os.getenv("TEST_LOG", "false").lower() == "true"

@@ -1,8 +1,12 @@
 # -------------------------------
 # 🌐 Core Framework
 # -------------------------------
-Django
-
+Django>=5.0
+gunicorn
+whitenoise
+python-dotenv
+dj-database-url
+pymongo
 # -------------------------------
 # 🔗 API / HTTP
 # -------------------------------

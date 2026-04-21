@@ -37,6 +37,13 @@ THRESHOLD_CHECK = True
 MONGO_URI = os.getenv("AUTH_MONGO_URI")
 MONGO_DB_NAME = os.getenv("AUTH_DB_NAME", "trading")
 
+
+# --------------------------------------------------
+# ⚙️ WEBHOOK DEFAULTS
+# --------------------------------------------------
+
+DEFAULT_MODE = os.getenv("DEFAULT_MODE", "PAPER").upper()
+DEFAULT_FORCE_ORDER = os.getenv("DEFAULT_FORCE_ORDER", "true").lower() == "true"
 # --------------------------------------------------
 # 📡 WEBSOCKET CONFIG (UNCHANGED)
 # --------------------------------------------------

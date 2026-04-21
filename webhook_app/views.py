@@ -2,6 +2,7 @@ import json
 import os
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.conf import settings  # ✅ NEW
 
 from .services import process_alert
 
@@ -17,6 +18,13 @@ def tradingview_webhook(request):
     if request.method == "POST":
         try:
             data = json.loads(request.body)
+
+            # ✅ Inject defaults (NO LOGIC CHANGE)
+            data["mode"] = data.get("mode", getattr(settings, "DEFAULT_MODE", "PAPER"))
+            data["force_order"] = data.get(
+                "force_order",
+                getattr(settings, "DEFAULT_FORCE_ORDER", True)
+            )
 
             # 🔹 Conditional logging
             if BASIC_LOGS:
@@ -50,6 +58,13 @@ def tradingview_webhook_with_id(request, security_id):
 
             # 🔥 Inject security_id into alert
             data["security_id"] = security_id
+
+            # ✅ Inject defaults (NO LOGIC CHANGE)
+            data["mode"] = data.get("mode", getattr(settings, "DEFAULT_MODE", "PAPER"))
+            data["force_order"] = data.get(
+                "force_order",
+                getattr(settings, "DEFAULT_FORCE_ORDER", True)
+            )
 
             if BASIC_LOGS:
                 print(f"📩 Incoming for Security {security_id}:", data)

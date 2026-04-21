@@ -109,12 +109,34 @@ def place_order(alert, market_data):
 
         # 🛑 SAME SIDE
         elif last_type == new_type:
-            print("⚠️ Same position already active → skipping")
+            print("⚠️ Same position already active → logging as IGNORED")
+
+            ignored_order = {
+                "order_id": str(uuid.uuid4()),
+                "type": new_type,
+                "alert_price": float(alert.get('price')),
+                "executed_price": float(market_data.get('ltp')),
+
+                "index_id": index_id,
+                "security_id": option_sec_id,
+
+                "index_ltp": market_data.get("index_ltp"),
+                "strike": market_data.get("strike"),
+                "timestamp": datetime.utcnow().isoformat(),
+
+                "mode": mode,
+                "status": "IGNORED",  # ✅ NEW
+                "reason": "Same position already active"
+            }
+
+            saved_order = save_order(ignored_order)
+
+            print_trade_log(saved_order, action="IGNORED")
 
             return {
                 "status": "ignored",
                 "reason": "Same position already active",
-                "existing_order": serialize_order(last_order)
+                "order": saved_order
             }
 
     # -----------------------------------
@@ -230,3 +252,4 @@ def get_all_orders():
     orders = list(collection.find())
 
     return [serialize_order(o) for o in orders]
+

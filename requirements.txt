@@ -32,7 +32,7 @@ whitenoise
 # 🔐 Environment Variables
 # -------------------------------
 python-dotenv
-
+pytz
 # -------------------------------
 # 📈 Trading APIs
 # -------------------------------

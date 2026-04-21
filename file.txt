@@ -111,6 +111,7 @@ D:.
 ¦           engine.cpython-312.pyc
 ¦           models.cpython-312.pyc
 ¦           orders.cpython-312.pyc
+¦           views.cpython-312.pyc
 ¦           __init__.cpython-312.pyc
 ¦           
 +---T_System
@@ -122,11 +123,13 @@ D:.
 ¦   ¦   __init__.py
 ¦   ¦   
 ¦   +---templates
-¦   ¦       index.html
+¦   ¦       live_dashboard.html
+¦   ¦       orders_dashboard.html
 ¦   ¦       
 ¦   +---__pycache__
 ¦           settings.cpython-312.pyc
 ¦           urls.cpython-312.pyc
+¦           views.cpython-312.pyc
 ¦           wsgi.cpython-312.pyc
 ¦           __init__.cpython-312.pyc
 ¦           
@@ -181,9 +184,6 @@ D:.
 ¦   ¦   +---__pycache__
 ¦   ¦           __init__.cpython-312.pyc
 ¦   ¦           
-¦   +---templates
-¦   ¦       dashboard.html
-¦   ¦       
 ¦   +---__pycache__
 ¦           admin.cpython-312.pyc
 ¦           apps.cpython-312.pyc

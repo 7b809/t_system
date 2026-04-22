@@ -8,6 +8,7 @@ D:.
 ¦   file.txt
 ¦   manage.py
 ¦   Procfile
+¦   readme.md
 ¦   requirements.txt
 ¦   runtime.txt
 ¦   run_file.bat

@@ -33,6 +33,62 @@ def print_trade_log(order, action="EXECUTED"):
 
 
 # -----------------------------------
+# 🔥 NEW: TRAILING LOGIC (ADDED)
+# -----------------------------------
+def update_trailing(order, current_price):
+    try:
+        entry = float(order.get("executed_price", 0))
+        sl = float(order.get("sl", entry - 10))
+        step = float(order.get("trail_step", 5))
+
+        highest = float(order.get("highest_price", entry))
+
+        if current_price > highest:
+            highest = current_price
+
+        # move SL to breakeven
+        if current_price >= entry + step:
+            sl = max(sl, entry)
+
+        # trailing move
+        new_sl = current_price - step
+        if new_sl > sl:
+            sl = new_sl
+
+        order["sl"] = sl
+        order["highest_price"] = highest
+
+        return order
+
+    except Exception as e:
+        print("❌ Trailing error:", e)
+        return order
+
+
+# -----------------------------------
+# 🔥 NEW: EXIT CHECK (ADDED)
+# -----------------------------------
+def should_exit(order, current_price):
+    try:
+        entry = float(order.get("executed_price", 0))
+        sl = float(order.get("sl", entry - 10))
+
+        # SL HIT
+        if current_price <= sl:
+            return True, "SL HIT"
+
+        # TARGET HIT (10 points)
+        if current_price >= entry + 10:
+            return True, "TARGET HIT"
+
+        return False, None
+
+    except Exception as e:
+        print("❌ Exit check error:", e)
+        return False, None
+
+
+# -----------------------------------
 # 🔍 GET LAST ACTIVE ORDER
 # -----------------------------------
 def get_last_order(index_id):
@@ -59,7 +115,6 @@ def exit_order(existing_order, market_data):
         print(f"Exit Time  : {datetime.utcnow().isoformat()}")
         print("==============================\n")
 
-
         entry_price = float(existing_order.get("executed_price", 0))
         exit_price = float(market_data.get("ltp", entry_price))
 
@@ -67,7 +122,6 @@ def exit_order(existing_order, market_data):
             pnl = exit_price - entry_price
         else:
             pnl = entry_price - exit_price
-            
 
         update_data = {
             "status": "EXITED",
@@ -80,7 +134,6 @@ def exit_order(existing_order, market_data):
             {"$set": update_data}
         )
 
-        # ❗ check if update actually happened
         if result.modified_count == 0:
             print("❌ Exit update failed")
             return False
@@ -92,7 +145,6 @@ def exit_order(existing_order, market_data):
     except Exception as e:
         print("❌ Exit failed:", e)
         return False
-    
 
 
 # -----------------------------------
@@ -101,42 +153,22 @@ def exit_order(existing_order, market_data):
 def place_order(alert, market_data):
     with order_lock:
 
-        """
-        Handles BOTH:
-        - PAPER trades
-        - LIVE trades
-        + POSITION REVERSAL LOGIC
-        """
-
         mode = alert.get("mode", "PAPER").upper()
-
         new_type = alert.get("type")
 
-        # 🔥 FIX: use INDEX ID instead of option contract id
         index_id = str(alert.get("security_id"))
-
-        # (keep option id separately)
         option_sec_id = str(market_data.get("sec_id"))
 
-        # -----------------------------------
-        # 🔁 CHECK EXISTING POSITION
-        # -----------------------------------
-        # last_order = get_last_order(index_id)
-
-        # -----------------------------------
-        # 🔁 CHECK EXISTING POSITION
-        # -----------------------------------
         last_order = get_active_order(index_id)
 
         if last_order:
             last_type = last_order.get("type")
 
-            # 🔁 REVERSAL
             if last_type != new_type:
                 print(f"🔁 Reversal detected: {last_type} → {new_type}")
 
                 exit_result = exit_order(last_order, market_data)
-                
+
                 if not exit_result:
                     return {
                         "status": "error",
@@ -145,7 +177,6 @@ def place_order(alert, market_data):
 
                 time.sleep(1)
 
-            # 🛑 SAME SIDE
             elif last_type == new_type:
                 print("⚠️ Same position already active → logging as IGNORED")
 
@@ -168,14 +199,8 @@ def place_order(alert, market_data):
                     "reason": "Duplicate signal"
                 }
 
-                saved_order = save_order(ignored_order)
+                return save_order(ignored_order)
 
-                return saved_order
-
-
-        # -----------------------------------
-        # 🛑 FINAL SAFETY CHECK (ADD HERE)
-        # -----------------------------------
         active_check = get_active_order(index_id)
 
         if active_check:
@@ -207,9 +232,6 @@ def place_order(alert, market_data):
         # 🔥 BASE ORDER STRUCTURE
         # -----------------------------------
         base_order = {
-
-
-
             "order_id": str(uuid.uuid4()),
             "type": new_type,
             "alert_price": float(alert.get('price')),
@@ -222,25 +244,20 @@ def place_order(alert, market_data):
             "strike": market_data.get("strike"),
             "timestamp": datetime.utcnow().isoformat(),
             "mode": mode,
-            "pnl": 0,            
+            "pnl": 0,
+
+            # 🔥 NEW FIELDS (ADDED ONLY)
+            "sl": float(market_data.get("ltp")) - 10,
+            "highest_price": float(market_data.get("ltp")),
+            "trail_step": 5,
         }
 
-        # -----------------------------------
-        # 🧪 PAPER TRADE
-        # -----------------------------------
         if mode == "PAPER":
             base_order["status"] = "EXECUTED"
-
             saved_order = save_order(base_order)
-
-            # ✅ CLEAN LOG
             print_trade_log(saved_order)
-
             return saved_order
 
-        # -----------------------------------
-        # 🚀 LIVE TRADE
-        # -----------------------------------
         elif mode == "LIVE":
             try:
                 response = dhan_place_order(
@@ -260,15 +277,9 @@ def place_order(alert, market_data):
                 base_order["error"] = str(e)
 
             saved_order = save_order(base_order)
-
-            # ✅ CLEAN LOG
             print_trade_log(saved_order, action=saved_order.get("status"))
-
             return saved_order
 
-        # -----------------------------------
-        # ❌ INVALID MODE
-        # -----------------------------------
         else:
             return {
                 "status": "error",
@@ -282,13 +293,8 @@ def place_order(alert, market_data):
 def save_order(order):
     try:
         collection = get_orders_collection()
-
-        db_order = order.copy()
-
-        result = collection.insert_one(db_order)
-
+        result = collection.insert_one(order.copy())
         order["_id"] = str(result.inserted_id)
-
         return order
 
     except Exception as e:
@@ -299,26 +305,16 @@ def save_order(order):
         }
 
 
-# -----------------------------------
-# 🔄 SERIALIZE ORDER
-# -----------------------------------
 def serialize_order(doc):
     doc = dict(doc)
-
     if "_id" in doc:
         doc["_id"] = str(doc["_id"])
-
     return doc
 
 
-# -----------------------------------
-# 📊 GET ALL ORDERS
-# -----------------------------------
 def get_all_orders():
     collection = get_orders_collection()
-
     orders = list(collection.find())
-
     return [serialize_order(o) for o in orders]
 
 

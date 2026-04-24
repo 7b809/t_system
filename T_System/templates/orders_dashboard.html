@@ -4,11 +4,79 @@
     <title>Orders Dashboard</title>
 
     <style>
-        body { font-family: Arial; padding: 20px; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #ddd; padding: 8px; }
-        th { background: #222; color: #fff; }
-        tr:nth-child(even) { background: #f2f2f2; }
+        body {
+            font-family: 'Segoe UI', Arial;
+            padding: 20px;
+            background: linear-gradient(135deg, #e0f2fe, #f0fdf4);
+            color: #0f172a;
+        }
+
+        h2 {
+            color: #2563eb;
+        }
+
+        .card {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: center;
+        }
+
+        th {
+            background: linear-gradient(90deg, #3b82f6, #06b6d4);
+            color: white;
+        }
+
+        tr {
+            transition: 0.2s;
+        }
+
+        tr:nth-child(even) {
+            background: #f8fafc;
+        }
+
+        tr:hover {
+            background: #e0f2fe;
+            transform: scale(1.002);
+        }
+
+        .btn {
+            padding: 10px 14px;
+            background: linear-gradient(90deg, #22c55e, #16a34a);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        /* STATUS BADGES */
+        .badge {
+            padding: 4px 8px;
+            border-radius: 6px;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .EXECUTED { background: #22c55e; }
+        .EXITED { background: #f59e0b; }
+        .IGNORED { background: #ef4444; }
+
+        /* TYPE COLORS */
+        .buyCE { color: #2563eb; font-weight: bold; }
+        .buyPE { color: #7c3aed; font-weight: bold; }
+
     </style>
 </head>
 <body>
@@ -16,35 +84,37 @@
 <h2>📊 Orders Dashboard</h2>
 
 <div style="margin-bottom: 15px;">
-    <a href="/live/" style="
-        padding: 8px 12px;
-        background: #38bdf8;
-        color: white;
-        text-decoration: none;
-        border-radius: 5px;
-    ">
+    <a href="/live/" class="btn">
         📡 Go to Live Feed Dashboard
     </a>
 </div>
 
+<div class="card">
 <table>
     <thead>
         <tr>
             <th>Time</th>
+            <th>Exit Time</th>
             <th>Index</th>
             <th>Type</th>
             <th>Strike</th>
             <th>Status</th>
-            <th>Price</th>
+            <th>Exec Price</th>
+            <th>Alert Price</th>
+            <th>LTP</th>
+            <th>Security</th>
             <th>Mode</th>
         </tr>
     </thead>
-    <tbody id="orders-body">
-        <!-- Data will come here -->
-    </tbody>
+    <tbody id="orders-body"></tbody>
 </table>
+</div>
 
 <script>
+function safe(val) {
+    return (val === null || val === undefined || val === "") ? "-" : val;
+}
+
 async function fetchOrders() {
     try {
         const res = await fetch('/api/orders/');
@@ -54,17 +124,26 @@ async function fetchOrders() {
         tbody.innerHTML = '';
 
         data.orders.forEach(order => {
+
+            const statusClass = order.status || "";
+            const typeClass = order.type || "";
+
             const row = `
                 <tr>
-                    <td>${order.time}</td>
-                    <td>${order.index}</td>
-                    <td>${order.type}</td>
-                    <td>${order.strike}</td>
-                    <td>${order.status}</td>
-                    <td>${order.price}</td>
-                    <td>${order.mode}</td>
+                    <td>${safe(order.time)}</td>
+                    <td>${safe(order.exit_time)}</td>
+                    <td>${safe(order.index)}</td>
+                    <td class="${typeClass}">${safe(order.type)}</td>
+                    <td>${safe(order.strike)}</td>
+                    <td><span class="badge ${statusClass}">${safe(order.status)}</span></td>
+                    <td>${safe(order.price)}</td>
+                    <td>${safe(order.alert_price)}</td>
+                    <td>${safe(order.index_ltp)}</td>
+                    <td>${safe(order.security_id)}</td>
+                    <td>${safe(order.mode)}</td>
                 </tr>
             `;
+
             tbody.innerHTML += row;
         });
 
@@ -76,7 +155,7 @@ async function fetchOrders() {
 // initial load
 fetchOrders();
 
-// fetch every 5 seconds
+// auto refresh
 setInterval(fetchOrders, 5000);
 </script>
 

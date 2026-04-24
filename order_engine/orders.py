@@ -106,7 +106,7 @@ def place_order(alert, market_data):
         if last_type != new_type:
             print(f"🔁 Reversal detected: {last_type} → {new_type}")
             exit_order(last_order)
-
+ 
         # 🛑 SAME SIDE
         elif last_type == new_type:
             print("⚠️ Same position already active → logging as IGNORED")

@@ -1,98 +1,124 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
+  <head>
     <title>Orders Dashboard</title>
 
     <style>
-        body {
-            font-family: 'Segoe UI', Arial;
-            padding: 20px;
-            background: linear-gradient(135deg, #e0f2fe, #f0fdf4);
-            color: #0f172a;
-        }
+      body {
+        font-family: "Segoe UI", Arial;
+        padding: 20px;
+        background: linear-gradient(135deg, #e0f2fe, #f0fdf4);
+        color: #0f172a;
+      }
 
-        h2 {
-            color: #2563eb;
-        }
+      h2 {
+        color: #2563eb;
+      }
 
-        .card {
-            background: white;
-            padding: 15px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-        }
+      .card {
+        background: white;
+        padding: 15px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      }
 
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            margin-top: 10px;
-        }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        margin-top: 10px;
+      }
 
-        th, td {
-            padding: 10px;
-            text-align: center;
-        }
+      th,
+      td {
+        padding: 10px;
+        text-align: center;
+      }
 
-        th {
-            background: linear-gradient(90deg, #3b82f6, #06b6d4);
-            color: white;
-        }
+      th {
+        background: linear-gradient(90deg, #3b82f6, #06b6d4);
+        color: white;
+      }
 
-        tr {
-            transition: 0.2s;
-        }
+      tr {
+        transition: 0.2s;
+      }
 
-        tr:nth-child(even) {
-            background: #f8fafc;
-        }
+      tr:nth-child(even) {
+        background: #f8fafc;
+      }
 
-        tr:hover {
-            background: #e0f2fe;
-            transform: scale(1.002);
-        }
+      tr:hover {
+        background: #e0f2fe;
+        transform: scale(1.002);
+      }
 
-        .btn {
-            padding: 10px 14px;
-            background: linear-gradient(90deg, #22c55e, #16a34a);
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: bold;
-        }
+      .btn {
+        padding: 10px 14px;
+        background: linear-gradient(90deg, #22c55e, #16a34a);
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        font-weight: bold;
+      }
 
-        /* STATUS BADGES */
-        .badge {
-            padding: 4px 8px;
-            border-radius: 6px;
-            color: white;
-            font-size: 12px;
-            font-weight: bold;
-        }
+      .badge {
+        padding: 4px 8px;
+        border-radius: 6px;
+        color: white;
+        font-size: 12px;
+        font-weight: bold;
+      }
 
-        .EXECUTED { background: #22c55e; }
-        .EXITED { background: #f59e0b; }
-        .IGNORED { background: #ef4444; }
+      .EXECUTED {
+        background: #22c55e;
+      }
+      .EXITED {
+        background: #f59e0b;
+      }
+      .IGNORED {
+        background: #ef4444;
+      }
 
-        /* TYPE COLORS */
-        .buyCE { color: #2563eb; font-weight: bold; }
-        .buyPE { color: #7c3aed; font-weight: bold; }
+      .buyCE {
+        color: #2563eb;
+        font-weight: bold;
+      }
+      .buyPE {
+        color: #7c3aed;
+        font-weight: bold;
+      }
 
+      .profit {
+        color: green;
+        font-weight: bold;
+      }
+      .loss {
+        color: red;
+        font-weight: bold;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
+    <h2>📊 Orders Dashboard</h2>
 
-<h2>📊 Orders Dashboard</h2>
+    <div style="margin-bottom: 15px">
+      <a href="/live/" class="btn"> 📡 Go to Live Feed Dashboard </a>
+    </div>
 
-<div style="margin-bottom: 15px;">
-    <a href="/live/" class="btn">
-        📡 Go to Live Feed Dashboard
-    </a>
-</div>
+    <!-- ✅ NEW DROPDOWN -->
+    <div style="margin-bottom: 15px">
+      <label><b>Select Index:</b></label>
+      <select
+        id="indexFilter"
+        onchange="applyFilter()"
+        style="padding: 6px; border-radius: 6px; margin-left: 10px"
+      ></select>
+    </div>
 
-<div class="card">
-<table>
-    <thead>
-        <tr>
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
             <th>Time</th>
             <th>Exit Time</th>
             <th>Index</th>
@@ -104,60 +130,105 @@
             <th>LTP</th>
             <th>Security</th>
             <th>Mode</th>
-        </tr>
-    </thead>
-    <tbody id="orders-body"></tbody>
-</table>
-</div>
+            <th>PnL</th>
+          </tr>
+        </thead>
+        <tbody id="orders-body"></tbody>
+      </table>
+    </div>
 
-<script>
-function safe(val) {
-    return (val === null || val === undefined || val === "") ? "-" : val;
-}
+    <script>
+      let allOrders = []; // ✅ NEW GLOBAL STORE
 
-async function fetchOrders() {
-    try {
-        const res = await fetch('/api/orders/');
-        const data = await res.json();
+      function safe(val) {
+        return val === null || val === undefined || val === "" ? "-" : val;
+      }
 
-        const tbody = document.getElementById('orders-body');
-        tbody.innerHTML = '';
+      async function fetchOrders() {
+        try {
+          const res = await fetch(`/api/orders/?index=ALL`);
+          const data = await res.json();
 
-        data.orders.forEach(order => {
+          allOrders = data.orders;
 
-            const statusClass = order.status || "";
-            const typeClass = order.type || "";
+          populateDropdown(allOrders);
 
-            const row = `
-                <tr>
-                    <td>${safe(order.time)}</td>
-                    <td>${safe(order.exit_time)}</td>
-                    <td>${safe(order.index)}</td>
-                    <td class="${typeClass}">${safe(order.type)}</td>
-                    <td>${safe(order.strike)}</td>
-                    <td><span class="badge ${statusClass}">${safe(order.status)}</span></td>
-                    <td>${safe(order.price)}</td>
-                    <td>${safe(order.alert_price)}</td>
-                    <td>${safe(order.index_ltp)}</td>
-                    <td>${safe(order.security_id)}</td>
-                    <td>${safe(order.mode)}</td>
-                </tr>
-            `;
+          applyFilter(); // filter locally
+        } catch (err) {
+          console.error("Error fetching orders:", err);
+        }
+      }
 
-            tbody.innerHTML += row;
+      // ✅ DROPDOWN POPULATION
+      function populateDropdown(orders) {
+        const select = document.getElementById("indexFilter");
+
+        if (select.options.length > 0) return;
+
+        // ✅ ADD ALL FIRST
+        const allOption = document.createElement("option");
+        allOption.value = "ALL";
+        allOption.textContent = "ALL";
+        select.appendChild(allOption);
+
+        const uniqueIndexes = [...new Set(orders.map((o) => o.index))];
+
+        uniqueIndexes.forEach((idx) => {
+          const option = document.createElement("option");
+          option.value = idx;
+          option.textContent = idx;
+          select.appendChild(option);
         });
+ 
+        // ✅ DEFAULT = 13
+        select.value = "13";
+      }
+      // ✅ FILTER FUNCTION
 
-    } catch (err) {
-        console.error("Error fetching orders:", err);
-    }
-}
+      function applyFilter() {
+        const selectedIndex = document.getElementById("indexFilter").value;
+        const tbody = document.getElementById("orders-body");
 
-// initial load
-fetchOrders();
+        tbody.innerHTML = "";
 
-// auto refresh
-setInterval(fetchOrders, 5000);
-</script>
+        const filtered =
+          selectedIndex === "ALL"
+            ? allOrders
+            : allOrders.filter((o) => o.index == selectedIndex);
 
-</body>
+        filtered.forEach((order) => {
+          const statusClass = order.status || "";
+          const typeClass = order.type || "";
+
+          const pnlClass =
+            order.pnl > 0 ? "profit" : order.pnl < 0 ? "loss" : "";
+
+          const row = `
+            <tr>
+                <td>${safe(order.time)}</td>
+                <td>${safe(order.exit_time)}</td>
+                <td>${safe(order.index)}</td>
+                <td class="${typeClass}">${safe(order.type)}</td>
+                <td>${safe(order.strike)}</td>
+                <td><span class="badge ${statusClass}">${safe(order.status)}</span></td>
+                <td>${safe(order.price)}</td>
+                <td>${safe(order.alert_price)}</td>
+                <td>${safe(order.index_ltp)}</td>
+                <td>${safe(order.security_id)}</td>
+                <td>${safe(order.mode)}</td>
+                <td class="${pnlClass}">${safe(order.pnl)}</td>
+            </tr>
+        `;
+
+          tbody.innerHTML += row;
+        });
+      }
+
+      // initial load
+      fetchOrders();
+
+      // auto refresh
+      setInterval(fetchOrders, 5000);
+    </script>
+  </body>
 </html>

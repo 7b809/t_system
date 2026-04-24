@@ -47,7 +47,7 @@ def get_last_order(index_id):
     )
 
 
-def exit_order(existing_order):
+def exit_order(existing_order, market_data):
     try:
         collection = get_orders_collection()
 
@@ -59,15 +59,15 @@ def exit_order(existing_order):
         print(f"Exit Time  : {datetime.utcnow().isoformat()}")
         print("==============================\n")
 
-        entry_price = existing_order.get("executed_price", 0)
 
-        # ⚠️ TEMP: using same price (you can later use real exit LTP)
-        exit_price = entry_price  
+        entry_price = float(existing_order.get("executed_price", 0))
+        exit_price = float(market_data.get("ltp", entry_price))
 
         if existing_order.get("type") == "buyCE":
             pnl = exit_price - entry_price
         else:
             pnl = entry_price - exit_price
+            
 
         update_data = {
             "status": "EXITED",
@@ -135,8 +135,8 @@ def place_order(alert, market_data):
             if last_type != new_type:
                 print(f"🔁 Reversal detected: {last_type} → {new_type}")
 
-                exit_result = exit_order(last_order)
-
+                exit_result = exit_order(last_order, market_data)
+                
                 if not exit_result:
                     return {
                         "status": "error",
@@ -149,8 +149,28 @@ def place_order(alert, market_data):
             elif last_type == new_type:
                 print("⚠️ Same position already active → logging as IGNORED")
 
-                # existing ignore logic...
-                return {...}
+                ignored_order = {
+                    "order_id": str(uuid.uuid4()),
+                    "type": new_type,
+                    "alert_price": float(alert.get('price')),
+                    "executed_price": None,
+
+                    "index_id": index_id,
+                    "security_id": option_sec_id,
+
+                    "index_ltp": market_data.get("index_ltp"),
+                    "strike": market_data.get("strike"),
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "mode": mode,
+
+                    "status": "IGNORED",
+                    "pnl": None,
+                    "reason": "Duplicate signal"
+                }
+
+                saved_order = save_order(ignored_order)
+
+                return saved_order
 
 
         # -----------------------------------
@@ -162,11 +182,26 @@ def place_order(alert, market_data):
             if active_check.get("type") == new_type:
                 print("🚫 Blocked duplicate (final check)")
 
-                return {
-                    "status": "ignored",
+                ignored_order = {
+                    "order_id": str(uuid.uuid4()),
+                    "type": new_type,
+                    "alert_price": float(alert.get('price')),
+                    "executed_price": None,
+
+                    "index_id": index_id,
+                    "security_id": option_sec_id,
+
+                    "index_ltp": market_data.get("index_ltp"),
+                    "strike": market_data.get("strike"),
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "mode": mode,
+
+                    "status": "IGNORED",
+                    "pnl": None,
                     "reason": "Final duplicate protection"
                 }
 
+                return save_order(ignored_order)
 
         # -----------------------------------
         # 🔥 BASE ORDER STRUCTURE

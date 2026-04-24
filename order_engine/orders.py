@@ -4,6 +4,9 @@ from datetime import datetime
 from order_engine.db import get_orders_collection
 from dhan_app.services.orders import place_order as dhan_place_order
 
+import threading,time
+
+order_lock = threading.Lock()
 
 # -----------------------------------
 # 🎯 CLEAN TRADE LOG FORMATTER
@@ -44,168 +47,198 @@ def get_last_order(index_id):
     )
 
 
-# -----------------------------------
-# ❌ EXIT ORDER
-# -----------------------------------
 def exit_order(existing_order):
-    collection = get_orders_collection()
+    try:
+        collection = get_orders_collection()
 
-    print("\n==============================")
-    print("❌ POSITION EXITED")
-    print("==============================")
-    print(f"Index      : {existing_order.get('index_id')}")
-    print(f"Signal     : {existing_order.get('type')}")
-    print(f"Exit Time  : {datetime.utcnow().isoformat()}")
-    print("==============================\n")
+        print("\n==============================")
+        print("❌ POSITION EXITED")
+        print("==============================")
+        print(f"Index      : {existing_order.get('index_id')}")
+        print(f"Signal     : {existing_order.get('type')}")
+        print(f"Exit Time  : {datetime.utcnow().isoformat()}")
+        print("==============================\n")
 
-    update_data = {
-        "status": "EXITED",
-        "exit_time": datetime.utcnow().isoformat()
-    }
+        entry_price = existing_order.get("executed_price", 0)
 
-    collection.update_one(
-        {"_id": existing_order["_id"]},
-        {"$set": update_data}
-    )
+        # ⚠️ TEMP: using same price (you can later use real exit LTP)
+        exit_price = entry_price  
 
-    existing_order.update(update_data)
+        if existing_order.get("type") == "buyCE":
+            pnl = exit_price - entry_price
+        else:
+            pnl = entry_price - exit_price
 
-    return existing_order
+        update_data = {
+            "status": "EXITED",
+            "exit_time": datetime.utcnow().isoformat(),
+            "pnl": pnl
+        }
+
+        result = collection.update_one(
+            {"_id": existing_order["_id"]},
+            {"$set": update_data}
+        )
+
+        # ❗ check if update actually happened
+        if result.modified_count == 0:
+            print("❌ Exit update failed")
+            return False
+
+        existing_order.update(update_data)
+
+        return True
+
+    except Exception as e:
+        print("❌ Exit failed:", e)
+        return False
+    
 
 
 # -----------------------------------
 # 🚀 PLACE ORDER
 # -----------------------------------
 def place_order(alert, market_data):
-    """
-    Handles BOTH:
-    - PAPER trades
-    - LIVE trades
-    + POSITION REVERSAL LOGIC
-    """
+    with order_lock:
 
-    mode = alert.get("mode", "PAPER").upper()
+        """
+        Handles BOTH:
+        - PAPER trades
+        - LIVE trades
+        + POSITION REVERSAL LOGIC
+        """
 
-    new_type = alert.get("type")
+        mode = alert.get("mode", "PAPER").upper()
 
-    # 🔥 FIX: use INDEX ID instead of option contract id
-    index_id = str(alert.get("security_id"))
+        new_type = alert.get("type")
 
-    # (keep option id separately)
-    option_sec_id = str(market_data.get("sec_id"))
+        # 🔥 FIX: use INDEX ID instead of option contract id
+        index_id = str(alert.get("security_id"))
 
-    # -----------------------------------
-    # 🔁 CHECK EXISTING POSITION
-    # -----------------------------------
-    last_order = get_last_order(index_id)
+        # (keep option id separately)
+        option_sec_id = str(market_data.get("sec_id"))
 
-    if last_order:
-        last_type = last_order.get("type")
+        # -----------------------------------
+        # 🔁 CHECK EXISTING POSITION
+        # -----------------------------------
+        # last_order = get_last_order(index_id)
 
-        # 🔁 REVERSAL
-        if last_type != new_type:
-            print(f"🔁 Reversal detected: {last_type} → {new_type}")
-            exit_order(last_order)
- 
-        # 🛑 SAME SIDE
-        elif last_type == new_type:
-            print("⚠️ Same position already active → logging as IGNORED")
+        # -----------------------------------
+        # 🔁 CHECK EXISTING POSITION
+        # -----------------------------------
+        last_order = get_active_order(index_id)
 
-            ignored_order = {
-                "order_id": str(uuid.uuid4()),
-                "type": new_type,
-                "alert_price": float(alert.get('price')),
-                "executed_price": float(market_data.get('ltp')),
+        if last_order:
+            last_type = last_order.get("type")
 
-                "index_id": index_id,
-                "security_id": option_sec_id,
+            # 🔁 REVERSAL
+            if last_type != new_type:
+                print(f"🔁 Reversal detected: {last_type} → {new_type}")
 
-                "index_ltp": market_data.get("index_ltp"),
-                "strike": market_data.get("strike"),
-                "timestamp": datetime.utcnow().isoformat(),
+                exit_result = exit_order(last_order)
 
-                "mode": mode,
-                "status": "IGNORED",  # ✅ NEW
-                "reason": "Same position already active"
-            }
+                if not exit_result:
+                    return {
+                        "status": "error",
+                        "msg": "Exit failed, skipping new entry"
+                    }
 
-            saved_order = save_order(ignored_order)
+                time.sleep(1)
 
-            print_trade_log(saved_order, action="IGNORED")
+            # 🛑 SAME SIDE
+            elif last_type == new_type:
+                print("⚠️ Same position already active → logging as IGNORED")
 
-            return {
-                "status": "ignored",
-                "reason": "Same position already active",
-                "order": saved_order
-            }
+                # existing ignore logic...
+                return {...}
 
-    # -----------------------------------
-    # 🔥 BASE ORDER STRUCTURE
-    # -----------------------------------
-    base_order = {
-        "order_id": str(uuid.uuid4()),
-        "type": new_type,
-        "alert_price": float(alert.get('price')),
-        "executed_price": float(market_data.get('ltp')),
 
-        "index_id": index_id,
-        "security_id": option_sec_id,
+        # -----------------------------------
+        # 🛑 FINAL SAFETY CHECK (ADD HERE)
+        # -----------------------------------
+        active_check = get_active_order(index_id)
 
-        "index_ltp": market_data.get("index_ltp"),
-        "strike": market_data.get("strike"),
-        "timestamp": datetime.utcnow().isoformat(),
-        "mode": mode
-    }
+        if active_check:
+            if active_check.get("type") == new_type:
+                print("🚫 Blocked duplicate (final check)")
 
-    # -----------------------------------
-    # 🧪 PAPER TRADE
-    # -----------------------------------
-    if mode == "PAPER":
-        base_order["status"] = "EXECUTED"
+                return {
+                    "status": "ignored",
+                    "reason": "Final duplicate protection"
+                }
 
-        saved_order = save_order(base_order)
 
-        # ✅ CLEAN LOG
-        print_trade_log(saved_order)
+        # -----------------------------------
+        # 🔥 BASE ORDER STRUCTURE
+        # -----------------------------------
+        base_order = {
 
-        return saved_order
 
-    # -----------------------------------
-    # 🚀 LIVE TRADE
-    # -----------------------------------
-    elif mode == "LIVE":
-        try:
-            response = dhan_place_order(
-                security_id=market_data["sec_id"],
-                price=market_data["ltp"]
-            )
 
-            if isinstance(response, dict) and response.get("status") == "success":
-                base_order["status"] = "LIVE_EXECUTED"
-            else:
-                base_order["status"] = "LIVE_FAILED"
+            "order_id": str(uuid.uuid4()),
+            "type": new_type,
+            "alert_price": float(alert.get('price')),
+            "executed_price": float(market_data.get('ltp')),
 
-            base_order["broker_response"] = response
+            "index_id": index_id,
+            "security_id": option_sec_id,
 
-        except Exception as e:
-            base_order["status"] = "LIVE_FAILED"
-            base_order["error"] = str(e)
-
-        saved_order = save_order(base_order)
-
-        # ✅ CLEAN LOG
-        print_trade_log(saved_order, action=saved_order.get("status"))
-
-        return saved_order
-
-    # -----------------------------------
-    # ❌ INVALID MODE
-    # -----------------------------------
-    else:
-        return {
-            "status": "error",
-            "msg": f"Invalid mode: {mode}"
+            "index_ltp": market_data.get("index_ltp"),
+            "strike": market_data.get("strike"),
+            "timestamp": datetime.utcnow().isoformat(),
+            "mode": mode,
+            "pnl": 0,            
         }
+
+        # -----------------------------------
+        # 🧪 PAPER TRADE
+        # -----------------------------------
+        if mode == "PAPER":
+            base_order["status"] = "EXECUTED"
+
+            saved_order = save_order(base_order)
+
+            # ✅ CLEAN LOG
+            print_trade_log(saved_order)
+
+            return saved_order
+
+        # -----------------------------------
+        # 🚀 LIVE TRADE
+        # -----------------------------------
+        elif mode == "LIVE":
+            try:
+                response = dhan_place_order(
+                    security_id=market_data["sec_id"],
+                    price=market_data["ltp"]
+                )
+
+                if isinstance(response, dict) and response.get("status") == "success":
+                    base_order["status"] = "LIVE_EXECUTED"
+                else:
+                    base_order["status"] = "LIVE_FAILED"
+
+                base_order["broker_response"] = response
+
+            except Exception as e:
+                base_order["status"] = "LIVE_FAILED"
+                base_order["error"] = str(e)
+
+            saved_order = save_order(base_order)
+
+            # ✅ CLEAN LOG
+            print_trade_log(saved_order, action=saved_order.get("status"))
+
+            return saved_order
+
+        # -----------------------------------
+        # ❌ INVALID MODE
+        # -----------------------------------
+        else:
+            return {
+                "status": "error",
+                "msg": f"Invalid mode: {mode}"
+            }
 
 
 # -----------------------------------
@@ -253,3 +286,14 @@ def get_all_orders():
 
     return [serialize_order(o) for o in orders]
 
+
+def get_active_order(index_id):
+    collection = get_orders_collection()
+
+    return collection.find_one(
+        {
+            "index_id": str(index_id),
+            "status": {"$in": ["EXECUTED", "LIVE_EXECUTED"]}
+        },
+        sort=[("timestamp", -1)]
+    )

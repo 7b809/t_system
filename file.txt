@@ -12,6 +12,7 @@ D:.
 ¦   requirements.txt
 ¦   runtime.txt
 ¦   run_file.bat
+¦   start.py
 ¦   
 +---core
 ¦   ¦   admin.py

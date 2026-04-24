@@ -6,34 +6,45 @@
 
 <style>
 body {
-  font-family: Arial;
-  background: #0f172a;
-  color: #e2e8f0;
+  font-family: 'Segoe UI', Arial;
+  background: linear-gradient(135deg, #e0f2fe, #f0fdf4);
+  color: #0f172a;
   padding: 20px;
 }
 
 h2 {
-  color: #38bdf8;
+  color: #2563eb;
 }
 
+/* GRID */
 .container {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 15px;
 }
 
+/* CARD */
 .card {
-  background: #020617;
-  border: 1px solid #1e293b;
-  border-radius: 10px;
+  background: white;
+  border-radius: 12px;
   padding: 15px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  transition: 0.2s;
 }
 
+.card:hover {
+  transform: translateY(-3px);
+}
+
+/* TITLE */
 .title {
   font-size: 18px;
+  font-weight: bold;
   margin-bottom: 8px;
+  color: #1e293b;
 }
 
+/* STATUS */
 .status {
   font-weight: bold;
   margin-bottom: 10px;
@@ -41,19 +52,26 @@ h2 {
 
 .live { color: #22c55e; }
 .offline { color: #ef4444; }
-.error { color: #f97316; }
+.error { color: #f59e0b; }
 
+/* PRICE */
 .value {
-  font-size: 22px;
+  font-size: 26px;
   font-weight: bold;
   margin-bottom: 10px;
+  padding: 6px;
+  border-radius: 6px;
+  transition: 0.2s;
 }
 
+/* ROW DETAILS */
 .row {
   display: flex;
   justify-content: space-between;
   font-size: 14px;
-  margin-bottom: 3px;
+  margin-bottom: 4px;
+  padding: 4px 0;
+  border-bottom: 1px solid #e2e8f0;
 }
 </style>
 </head>
@@ -76,7 +94,7 @@ const baseUrl = "wss://sr-webhook.up.railway.app/ws";
 
 const container = document.getElementById("feeds");
 
-// 🔥 store previous prices
+// store previous prices
 const prevPrices = {};
 
 function createCard(secId) {
@@ -120,31 +138,28 @@ function connectWS(secId, statusEl, ltpEl, detailsEl) {
       const data = JSON.parse(event.data);
       const newPrice = parseFloat(data.LTP);
 
-      // 🔥 compare with previous
       const prev = prevPrices[secId];
 
       if (prev !== undefined) {
         if (newPrice > prev) {
-          ltpEl.style.color = "#22c55e"; // green
-          flash(ltpEl, "#14532d");
+          ltpEl.style.color = "#16a34a"; // green
+          flash(ltpEl, "#bbf7d0");
         } else if (newPrice < prev) {
-          ltpEl.style.color = "#ef4444"; // red
-          flash(ltpEl, "#7f1d1d");
+          ltpEl.style.color = "#dc2626"; // red
+          flash(ltpEl, "#fecaca");
         }
       }
 
       prevPrices[secId] = newPrice;
 
-      // update value
       ltpEl.textContent = newPrice;
 
-      // details
       detailsEl.innerHTML = `
-        <div class="row"><span>LTT</span><span>${data.LTT}</span></div>
-        <div class="row"><span>Open</span><span>${data.open}</span></div>
-        <div class="row"><span>High</span><span>${data.high}</span></div>
-        <div class="row"><span>Low</span><span>${data.low}</span></div>
-        <div class="row"><span>Close</span><span>${data.close}</span></div>
+        <div class="row"><span>LTT</span><span>${data.LTT || "-"}</span></div>
+        <div class="row"><span>Open</span><span>${data.open || "-"}</span></div>
+        <div class="row"><span>High</span><span>${data.high || "-"}</span></div>
+        <div class="row"><span>Low</span><span>${data.low || "-"}</span></div>
+        <div class="row"><span>Close</span><span>${data.close || "-"}</span></div>
       `;
 
     } catch {
@@ -167,7 +182,7 @@ function connectWS(secId, statusEl, ltpEl, detailsEl) {
   };
 }
 
-// 🔥 flash effect
+// flash effect
 function flash(el, color) {
   const original = el.style.backgroundColor;
   el.style.backgroundColor = color;

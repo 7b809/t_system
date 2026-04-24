@@ -7,7 +7,6 @@ IST = pytz.timezone("Asia/Kolkata")
 
 
 def safe_get(value, fallback="-"):
-    """Return fallback if value is None, empty, or invalid"""
     if value is None:
         return fallback
     if isinstance(value, str) and value.strip() == "":
@@ -16,7 +15,6 @@ def safe_get(value, fallback="-"):
 
 
 def format_time(utc_time):
-    """Convert UTC ISO time → IST formatted"""
     try:
         if not utc_time:
             return "-"
@@ -31,9 +29,16 @@ def format_time(utc_time):
 
 def orders_api(request):
     try:
+        # ✅ GET FILTER PARAM
+        selected_index = request.GET.get("index", "13")  # default = 13
+
         orders = get_all_orders() or []
 
-        # ✅ Sort latest first
+        # ✅ FILTER BY INDEX (backend level)
+        if selected_index != "ALL":
+            orders = [o for o in orders if str(o.get("index_id")) == str(selected_index)]
+
+        # ✅ SORT LATEST FIRST
         orders = sorted(
             orders,
             key=lambda x: x.get("timestamp", ""),
@@ -44,30 +49,30 @@ def orders_api(request):
 
         for o in orders:
             data.append({
-                # ✅ Time fields
                 "time": format_time(o.get("timestamp")),
                 "exit_time": format_time(o.get("exit_time")),
 
-                # ✅ Core fields
                 "index": safe_get(o.get("index_id")),
                 "type": safe_get(o.get("type")),
                 "strike": safe_get(o.get("strike")),
                 "status": safe_get(o.get("status")),
                 "mode": safe_get(o.get("mode")),
 
-                # ✅ Prices
-                "price": safe_get(o.get("executed_price")),   # executed price
+                "price": safe_get(o.get("executed_price")),
                 "alert_price": safe_get(o.get("alert_price")),
                 "index_ltp": safe_get(o.get("index_ltp")),
 
-                # ✅ Identifiers
                 "order_id": safe_get(o.get("order_id")),
                 "security_id": safe_get(o.get("security_id")),
+
+                # ✅ INCLUDE PnL
+                "pnl": safe_get(o.get("pnl")),
             })
 
         return JsonResponse({
             "status": "success",
             "count": len(data),
+            "selected_index": selected_index,
             "orders": data
         })
 
